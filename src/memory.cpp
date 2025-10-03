@@ -42,6 +42,10 @@ uint8_t Memory::readByte(uint16_t addr) const { // メモリからバイトを�
     } else if (addr < 0xFF00) {
         // 未実装領域
         return 0;
+    } else if (addr == 0xFF01) {   // SB
+        return SB;
+    } else if (addr == 0xFF02) {   // SC
+        return SC;
     } else if (addr == 0xFF44) {
         return LY;  // グローバルまたはクラス変数で管理
     } else if (addr == 0xFF0F) {
@@ -72,9 +76,13 @@ void Memory::writeByte(uint16_t addr, uint8_t val) {
         oam[addr - 0xFE00] = val;
     } else if (addr < 0xFF00) {
         // 未使用
-    } else if (addr < 0xFF44){
-        return;
-    } else if (addr < 0xFF0F){
+    } else if (addr == 0xFF01) {        // SB
+        SB = val;
+    } else if (addr == 0xFF02) {        // SC
+        SC = val;
+    } else if (addr == 0xFF44){
+        // LYはCPUから書き込めないので無視
+    } else if (addr == 0xFF0F){
         if_reg = val;
     } else if (addr < 0xFF80) {
         // I/Oレジスタ未実装

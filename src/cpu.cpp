@@ -26,7 +26,7 @@ CPU::CPU(Memory* mem, PPU* ppu)
     }
 
 
-void CPU::step() {
+int CPU::step() {
     // 1. 命令をフェッチ
     uint8_t opcode = memory->readByte(PC++);
 
@@ -2568,7 +2568,8 @@ void CPU::step() {
             break;
     }
     handleInterrupts();
-    memory->LY = (memory->LY + 1) % 154;
+    return cycles;
+
 }
 
 void CPU::handleInterrupts() {

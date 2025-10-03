@@ -15,7 +15,7 @@ class CPU {
 public:
     CPU(Memory* mem, PPU* ppu);
     void reset();      // CPUを初期化する
-    void step();       // 1命令を実行する
+    int step();       // 1命令を実行する
 
 private:
     Memory* memory;

@@ -10,6 +10,7 @@ public:
     void reset();
     const uint32_t* getFrameBuffer() const{ return framebuffer;}
 
+
 private:
     Memory& memory;
     int scanlineCounter = 456;
