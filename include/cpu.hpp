@@ -30,4 +30,9 @@ private:
     uint16_t PC;       // プログラムカウンタ
     uint16_t SP;       // スタックポインタ
     int cycles;
+
+    bool ime = false; //割り込みフラグ
+    void handleInterrupts();
+    void executeCB();
+    uint8_t& getRegisterRef(uint8_t code);
 };

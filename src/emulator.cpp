@@ -1,7 +1,9 @@
 #include "emulator.hpp"
 #include <iostream>
 
-Emulator::Emulator() : cpu(&memory, &ppu) {}
+Emulator::Emulator()
+    : ppu(memory),
+      cpu(&memory, &ppu) {}
 
 void Emulator::loadROM(const std::string& path) {
     memory.loadROM(path);
@@ -9,11 +11,19 @@ void Emulator::loadROM(const std::string& path) {
 }
 
 void Emulator::run() {
-    std::cout << "Emulator running...";
+    std::cout << "Emulator running...\n";
 
-    //テストように10ステップだけ実行
-    for(int i=0; i<100; ++i){
+    for (int i = 0; i < 50'000'000; ++i) {
         cpu.step();
+
+        // シリアル出力チェック
+        uint8_t sc = memory.readByte(0xFF02);
+        if (sc & 0x80) {                     // 送信開始フラグ
+            char c = static_cast<char>(memory.readByte(0xFF01));
+            std::cout << c;                   // コンソールに出力
+            memory.writeByte(0xFF02, 0x00);    // フラグをクリア
+        }
     }
 
+    std::cout << "\n[Run finished]\n";
 }
