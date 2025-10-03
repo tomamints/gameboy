@@ -1,0 +1,1 @@
+/usr/bin/c++ -Wl,-search_paths_first -Wl,-headerpad_max_install_names CMakeFiles/gameboy.dir/src/apu.cpp.o CMakeFiles/gameboy.dir/src/cpu.cpp.o CMakeFiles/gameboy.dir/src/emulator.cpp.o CMakeFiles/gameboy.dir/src/input.cpp.o CMakeFiles/gameboy.dir/src/main.cpp.o CMakeFiles/gameboy.dir/src/memory.cpp.o CMakeFiles/gameboy.dir/src/ppu.cpp.o -o gameboy

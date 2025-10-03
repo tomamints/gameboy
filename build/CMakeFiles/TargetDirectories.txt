@@ -1,0 +1,3 @@
+/Users/shiraitouma/mintsPg/gameboy/build/CMakeFiles/gameboy.dir
+/Users/shiraitouma/mintsPg/gameboy/build/CMakeFiles/edit_cache.dir
+/Users/shiraitouma/mintsPg/gameboy/build/CMakeFiles/rebuild_cache.dir
