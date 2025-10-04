@@ -15,6 +15,20 @@ public:
     uint8_t ie     = 0x00;
     uint8_t SB = 0;      // 0xFF01 シリアルデータ
     uint8_t SC = 0;      // 0xFF02 シリアル制御
+    uint8_t DIV = 0;     // 0xFF04 ディバイダレジスタ
+    uint8_t TIMA = 0;    // 0xFF05 タイマカウンタ
+    uint8_t TMA = 0;     // 0xFF06 タイマモジュロ
+    uint8_t TAC = 0;     // 0xFF07 タイマコントロール
+    uint8_t LCDC = 0x91; // 0xFF40 LCD制御（初期値）
+    uint8_t STAT = 0;    // 0xFF41 LCD状態
+    uint8_t SCY = 0;     // 0xFF42 スクロールY
+    uint8_t SCX = 0;     // 0xFF43 スクロールX
+    uint8_t LYC = 0;     // 0xFF45 LY比較値
+    uint8_t BGP = 0xFC;  // 0xFF47 BGパレット
+    uint8_t OBP0 = 0xFF; // 0xFF48 OBJパレット0
+    uint8_t OBP1 = 0xFF; // 0xFF49 OBJパレット1
+    uint8_t WY = 0;      // 0xFF4A ウィンドウY
+    uint8_t WX = 0;      // 0xFF4B ウィンドウX
 
 private:
     std::vector<uint8_t> rom; //ROM 32kb

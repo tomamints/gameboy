@@ -32,6 +32,8 @@ private:
     int cycles;
 
     bool ime = false; //割り込みフラグ
+    bool halted = false; // HALT状態フラグ
+    bool ei_delay = false; // EI命令の遅延フラグ
     void handleInterrupts();
     void executeCB();
     uint8_t& getRegisterRef(uint8_t code);

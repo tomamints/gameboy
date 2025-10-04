@@ -13,7 +13,7 @@ public:
 
 private:
     Memory& memory;
-    int scanlineCounter = 456;
+    int scanlineCounter = 456;  // Tサイクル（ドット）単位
     uint8_t currentLine = 0;
     uint32_t framebuffer[160*144];//出力先ピクセル
 

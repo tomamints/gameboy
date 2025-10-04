@@ -4,6 +4,7 @@
 #include "memory.hpp"
 #include "ppu.hpp"
 #include "input.hpp"
+#include "timer.hpp"
 
 class Emulator {
 public:
@@ -17,4 +18,5 @@ private:
     CPU cpu;
     PPU ppu;
     Input input;
+    Timer timer;
 };

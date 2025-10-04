@@ -12,6 +12,9 @@ CPU::CPU(Memory* mem, PPU* ppu)
         PC = 0x0100;   // 実機もここから実行開始
         SP = 0xFFFE;   // スタックポインタ
 
+        std::cout << "[CPU RESET] PC=" << std::hex << PC
+                  << " SP=" << SP << std::dec << std::endl;
+
         // 実機の電源投入直後のレジスタ値
         A = 0x01;
         F = 0xB0;
@@ -27,6 +30,23 @@ CPU::CPU(Memory* mem, PPU* ppu)
 
 
 int CPU::step() {
+    cycles = 0;  // 必ず初期化！
+
+    // 割り込みチェックを最初に実行
+    handleInterrupts();
+
+    // HALT状態のチェック
+    if (halted) {
+        // 割り込み待ち
+        uint8_t req = memory->if_reg & memory->ie;
+        if (req != 0) {
+            halted = false;  // HALT解除
+        } else {
+            cycles = 4;  // HALTでもサイクルを消費
+            return cycles;
+        }
+    }
+
     // 1. 命令をフェッチ
     uint8_t opcode = memory->readByte(PC++);
 
@@ -307,6 +327,8 @@ int CPU::step() {
         case 0x18:  // JR r8
         {
             int8_t offset = static_cast<int8_t>(memory->readByte(PC++));
+
+
             PC += offset;
             cycles += 12;
             std::cout << "JR → " << std::hex << PC << " (offset=" << (int)offset << ")\n";
@@ -1129,9 +1151,9 @@ int CPU::step() {
         }
 
         case 0x76:  // HALT
-            // とりあえずNOP扱い
+            halted = true;
             cycles += 4;
-            std::cout << "HALT (treated as NOP)\n";
+            std::cout << "HALT\n";
             break;
 
         case 0x77:  // LD (HL),A
@@ -1940,11 +1962,22 @@ int CPU::step() {
 
         case 0xC3:  // JP a16
         {
+            uint16_t oldPC = PC - 1;  // オペコードの位置
             uint8_t lo = memory->readByte(PC++);
             uint8_t hi = memory->readByte(PC++);
-            PC = (hi << 8) | lo;
+            uint16_t addr = (hi << 8) | lo;
+
+            // Gearboy形式で出力
+            std::cout << std::hex << std::setfill('0') << std::setw(2)
+                      << ((oldPC >> 8) & 0xFF) << ":"
+                      << std::setw(4) << oldPC << " C3 "
+                      << std::setw(2) << (int)lo << " "
+                      << std::setw(2) << (int)hi
+                      << " -> JP $" << std::setw(4) << addr
+                      << std::dec << std::endl;
+
+            PC = addr;
             cycles += 16;
-            std::cout << "JP " << std::hex << PC << "\n";
             break;
         }
 
@@ -2372,11 +2405,16 @@ int CPU::step() {
         case 0xE8:  // ADD SP,r8
         {
             int8_t offset = static_cast<int8_t>(memory->readByte(PC++));
-            uint16_t oldSP = SP;
             uint16_t result = SP + offset;
+
+            // フラグ計算は下位8bitで無符号演算として行う
+            uint8_t lowSP = SP & 0xFF;
+            uint8_t lowOffset = offset & 0xFF; // 符号拡張せずに8bit値として扱う
+
             F = 0;
-            if (((oldSP & 0x0F) + (offset & 0x0F)) & 0x10) F |= FLAG_H;
-            if (((oldSP & 0xFF) + (offset & 0xFF)) & 0x100) F |= FLAG_C;
+            if (((lowSP & 0x0F) + (lowOffset & 0x0F)) > 0x0F) F |= FLAG_H;
+            if ((lowSP + lowOffset) > 0xFF) F |= FLAG_C;
+
             SP = result;
             cycles += 16;
             std::cout << "ADD SP," << std::dec << (int)offset
@@ -2501,9 +2539,15 @@ int CPU::step() {
         {
             int8_t offset = static_cast<int8_t>(memory->readByte(PC++));
             uint16_t result = SP + offset;
+
+            // フラグ計算は下位8bitで無符号演算として行う
+            uint8_t lowSP = SP & 0xFF;
+            uint8_t lowOffset = offset & 0xFF; // 符号拡張せずに8bit値として扱う
+
             F = 0;
-            if (((SP & 0x0F) + (offset & 0x0F)) & 0x10) F |= FLAG_H;
-            if (((SP & 0xFF) + (offset & 0xFF)) & 0x100) F |= FLAG_C;
+            if (((lowSP & 0x0F) + (lowOffset & 0x0F)) > 0x0F) F |= FLAG_H;
+            if ((lowSP + lowOffset) > 0xFF) F |= FLAG_C;
+
             H = (result >> 8) & 0xFF;
             L = result & 0xFF;
             cycles += 12;
@@ -2530,9 +2574,9 @@ int CPU::step() {
         }
 
         case 0xFB:  // EI
-            ime = true;
+            ei_delay = true;  // 次の命令実行後にIMEを有効にする
             cycles += 4;
-            std::cout << "EI (Enable Interrupts)\n";
+            std::cout << "EI (Enable Interrupts - delayed)\n";
             break;
 
         case 0xFF:  // RST 38h
@@ -2567,21 +2611,42 @@ int CPU::step() {
                       << " at PC=" << PC-1 << "\n";
             break;
     }
-    handleInterrupts();
+
+    // EI命令の遅延処理（次の命令実行後にIMEを有効にする）
+    if (ei_delay) {
+        ime = true;
+        ei_delay = false;
+        std::cout << "EI delay activated - IME now enabled\n";
+    }
+
+    // デバッグ：異常なサイクル値を検出
+    if (cycles == 0 || cycles > 100) {
+        std::cout << "[CPU] Abnormal cycles: " << cycles << " at PC=" << std::hex << (PC-1) << std::endl;
+    }
+
     return cycles;
 
 }
 
 void CPU::handleInterrupts() {
-    // 割り込みが無効なら何もしない
-    if (!ime) return;
-
     // IE と IF の両方を確認
     uint8_t req = memory->if_reg & memory->ie;
-    if (req == 0) return;   // 割り込みなし
+    if (req == 0)
+    return;   // 割り込みなし
+
+    // HALTからの復帰（IMEに関係なく）
+    if (halted) {
+        halted = false;
+        if (!ime) return;  // IME無効なら割り込み処理はしない
+    }
+
+    // 割り込みが無効なら何もしない
+    if (!ime)
+    return;
 
     // 割り込みを受け付けたら IME をクリア
     ime = false;
+    std::cout << "================interruput start=================" << std::endl;
 
     // 優先順位: V-Blank → LCD → Timer → Serial → Joypad
     uint16_t vector = 0;
@@ -2617,7 +2682,7 @@ void CPU::handleInterrupts() {
 
     // ベクタへジャンプ
     PC = vector;
-    cycles += 20; // 割り込み処理のオーバーヘッド
+    cycles += 20;
 }
 
 void CPU::executeCB()

@@ -13,6 +13,8 @@ file(REMOVE_RECURSE
   "CMakeFiles/gameboy.dir/src/memory.cpp.o.d"
   "CMakeFiles/gameboy.dir/src/ppu.cpp.o"
   "CMakeFiles/gameboy.dir/src/ppu.cpp.o.d"
+  "CMakeFiles/gameboy.dir/src/timer.cpp.o"
+  "CMakeFiles/gameboy.dir/src/timer.cpp.o.d"
   "gameboy"
   "gameboy.pdb"
 )

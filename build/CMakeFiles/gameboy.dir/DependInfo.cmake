@@ -15,6 +15,7 @@ set(CMAKE_DEPENDS_DEPENDENCY_FILES
   "/Users/shiraitouma/mintsPg/gameboy/src/main.cpp" "CMakeFiles/gameboy.dir/src/main.cpp.o" "gcc" "CMakeFiles/gameboy.dir/src/main.cpp.o.d"
   "/Users/shiraitouma/mintsPg/gameboy/src/memory.cpp" "CMakeFiles/gameboy.dir/src/memory.cpp.o" "gcc" "CMakeFiles/gameboy.dir/src/memory.cpp.o.d"
   "/Users/shiraitouma/mintsPg/gameboy/src/ppu.cpp" "CMakeFiles/gameboy.dir/src/ppu.cpp.o" "gcc" "CMakeFiles/gameboy.dir/src/ppu.cpp.o.d"
+  "/Users/shiraitouma/mintsPg/gameboy/src/timer.cpp" "CMakeFiles/gameboy.dir/src/timer.cpp.o" "gcc" "CMakeFiles/gameboy.dir/src/timer.cpp.o.d"
   )
 
 # Targets to which this target links which contain Fortran sources.
