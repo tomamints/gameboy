@@ -40,7 +40,7 @@ void Emulator::run() {
     std::string output;                     // ★ここに文字を貯める
 
     int serialCount = 0;
-    int serialLimit = 100;                    // ★10回で停止
+    int serialLimit = 100;                    // ★上限回数で停止
     uint8_t lastSC = 0;
     int serialDelay = 0;                      // シリアル転送遅延カウンタ
 
@@ -111,8 +111,71 @@ void Emulator::run() {
     // ★ここでこれまで受け取った文字列をまとめて表示
     std::cout << "\n[INFO] 受信したシリアル文字列: \"" << output << "\"\n";
 
+    // フレームバッファのダンプ（簡易PPM）
+    ppu.saveFramePPM("frame.ppm");
+    std::cout << "[INFO] フレーム出力を frame.ppm に保存しました\n";
+
     std::cout << "[INFO] 最終サイクル数: " << totalCycles << "\n";
     std::cout << "[INFO] 70000サイクル換算ステップ数: "
               << (totalCycles / 70000) << "\n";
     std::cout << "[INFO] 命令実行ステップ数: " << stepCount << "\n";
+}
+
+void Emulator::runWithDisplay() {
+    std::cout << "Initializing display...\n";
+
+    if (!display.init()) {
+        std::cerr << "Failed to initialize display. Falling back to console mode.\n";
+        run();
+        return;
+    }
+
+    std::cout << "Emulator running with SDL2 display...\n";
+
+    int totalCycles = 0;
+    long long stepCount = 0;
+    const int MAX_CYCLES = 2000000000;
+    std::string output;
+
+    int frameCount = 0;
+    const int FRAME_INTERVAL = 70224; // 1フレーム分のサイクル数
+
+    while (totalCycles < MAX_CYCLES) {
+        int cycles = cpu.step();
+        ++stepCount;
+        ppu.step(cycles);
+        timer.step(cycles);
+        totalCycles += cycles;
+
+        // フレーム更新チェック
+        if (totalCycles - frameCount * FRAME_INTERVAL >= FRAME_INTERVAL) {
+            display.updateFrame(ppu.getFrameBuffer());
+            frameCount++;
+
+            // SDL2イベント処理
+            if (!display.handleEvents()) {
+                std::cout << "\n[INFO] ユーザーによる終了\n";
+                break;
+            }
+        }
+
+        // シリアル出力処理（既存のコードを簡略化）
+        uint8_t sc = memory.readByte(0xFF02);
+        if (sc == 0x81) {
+            uint8_t data = memory.readByte(0xFF01);
+            output += static_cast<char>(data);
+            memory.writeByte(0xFF02, 0x80);
+        }
+
+        // 終了条件チェック
+        if (output.find("Passed") != std::string::npos ||
+            output.find("Failed") != std::string::npos) {
+            std::cout << "\n[INFO] テスト完了: " << output << "\n";
+            //break;
+        }
+    }
+
+    std::cout << "[INFO] 最終サイクル数: " << totalCycles << "\n";
+    std::cout << "[INFO] 表示フレーム数: " << frameCount << "\n";
+    //display.close();
 }

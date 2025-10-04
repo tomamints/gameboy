@@ -1,0 +1,5 @@
+*.log
+*.ppm
+build/
+*.o
+*.d
