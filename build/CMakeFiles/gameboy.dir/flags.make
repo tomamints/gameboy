@@ -4,7 +4,7 @@
 # compile CXX with /usr/bin/c++
 CXX_DEFINES = 
 
-CXX_INCLUDES = -I/Users/shiraitouma/mintsPg/gameboy/include
+CXX_INCLUDES = -I/Users/shiraitouma/mintsPg/gameboy/include -I/usr/local/Cellar/sdl2/2.30.5/include -isystem /usr/local/Cellar/sdl2/2.30.5/include/SDL2
 
 CXX_FLAGS = -std=gnu++17
 

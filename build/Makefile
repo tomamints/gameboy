@@ -177,6 +177,30 @@ src/cpu.cpp.s:
 	$(MAKE) $(MAKESILENT) -f CMakeFiles/gameboy.dir/build.make CMakeFiles/gameboy.dir/src/cpu.cpp.s
 .PHONY : src/cpu.cpp.s
 
+src/display.o: src/display.cpp.o
+.PHONY : src/display.o
+
+# target to build an object file
+src/display.cpp.o:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/gameboy.dir/build.make CMakeFiles/gameboy.dir/src/display.cpp.o
+.PHONY : src/display.cpp.o
+
+src/display.i: src/display.cpp.i
+.PHONY : src/display.i
+
+# target to preprocess a source file
+src/display.cpp.i:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/gameboy.dir/build.make CMakeFiles/gameboy.dir/src/display.cpp.i
+.PHONY : src/display.cpp.i
+
+src/display.s: src/display.cpp.s
+.PHONY : src/display.s
+
+# target to generate assembly for a file
+src/display.cpp.s:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/gameboy.dir/build.make CMakeFiles/gameboy.dir/src/display.cpp.s
+.PHONY : src/display.cpp.s
+
 src/emulator.o: src/emulator.cpp.o
 .PHONY : src/emulator.o
 
@@ -336,6 +360,9 @@ help:
 	@echo "... src/cpu.o"
 	@echo "... src/cpu.i"
 	@echo "... src/cpu.s"
+	@echo "... src/display.o"
+	@echo "... src/display.i"
+	@echo "... src/display.s"
 	@echo "... src/emulator.o"
 	@echo "... src/emulator.i"
 	@echo "... src/emulator.s"

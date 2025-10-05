@@ -30,10 +30,20 @@ public:
     uint8_t WY = 0;      // 0xFF4A ウィンドウY
     uint8_t WX = 0;      // 0xFF4B ウィンドウX
 
+    bool vramLocked = false;
+    bool oamLocked  = false;
+
 private:
-    std::vector<uint8_t> rom; //ROM 32kb
+    std::vector<uint8_t> rom; // 完全なROMデータ（バンク切り替え対応）
     std::vector<uint8_t> vram; //8kb video ram
     std::vector<uint8_t> wram; //work ram 8kb
     std::vector<uint8_t> oam; //object attribute memory 160bytes
     std::vector<uint8_t> hram; //high ram 127bytes
+    size_t romBankCount = 0;
+    uint8_t romBankLower = 1;
+    uint8_t romBankUpper = 0;
+    uint8_t mbc1Mode = 0;
+
+    size_t currentROMBank() const;
+    uint8_t readROM(uint16_t addr) const;
 };

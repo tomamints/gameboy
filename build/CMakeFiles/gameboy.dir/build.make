@@ -100,10 +100,24 @@ CMakeFiles/gameboy.dir/src/cpu.cpp.s: cmake_force
 	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green "Compiling CXX source to assembly CMakeFiles/gameboy.dir/src/cpu.cpp.s"
 	/usr/bin/c++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -S /Users/shiraitouma/mintsPg/gameboy/src/cpu.cpp -o CMakeFiles/gameboy.dir/src/cpu.cpp.s
 
+CMakeFiles/gameboy.dir/src/display.cpp.o: CMakeFiles/gameboy.dir/flags.make
+CMakeFiles/gameboy.dir/src/display.cpp.o: /Users/shiraitouma/mintsPg/gameboy/src/display.cpp
+CMakeFiles/gameboy.dir/src/display.cpp.o: CMakeFiles/gameboy.dir/compiler_depend.ts
+	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green --progress-dir=/Users/shiraitouma/mintsPg/gameboy/build/CMakeFiles --progress-num=$(CMAKE_PROGRESS_3) "Building CXX object CMakeFiles/gameboy.dir/src/display.cpp.o"
+	/usr/bin/c++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -MD -MT CMakeFiles/gameboy.dir/src/display.cpp.o -MF CMakeFiles/gameboy.dir/src/display.cpp.o.d -o CMakeFiles/gameboy.dir/src/display.cpp.o -c /Users/shiraitouma/mintsPg/gameboy/src/display.cpp
+
+CMakeFiles/gameboy.dir/src/display.cpp.i: cmake_force
+	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green "Preprocessing CXX source to CMakeFiles/gameboy.dir/src/display.cpp.i"
+	/usr/bin/c++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -E /Users/shiraitouma/mintsPg/gameboy/src/display.cpp > CMakeFiles/gameboy.dir/src/display.cpp.i
+
+CMakeFiles/gameboy.dir/src/display.cpp.s: cmake_force
+	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green "Compiling CXX source to assembly CMakeFiles/gameboy.dir/src/display.cpp.s"
+	/usr/bin/c++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -S /Users/shiraitouma/mintsPg/gameboy/src/display.cpp -o CMakeFiles/gameboy.dir/src/display.cpp.s
+
 CMakeFiles/gameboy.dir/src/emulator.cpp.o: CMakeFiles/gameboy.dir/flags.make
 CMakeFiles/gameboy.dir/src/emulator.cpp.o: /Users/shiraitouma/mintsPg/gameboy/src/emulator.cpp
 CMakeFiles/gameboy.dir/src/emulator.cpp.o: CMakeFiles/gameboy.dir/compiler_depend.ts
-	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green --progress-dir=/Users/shiraitouma/mintsPg/gameboy/build/CMakeFiles --progress-num=$(CMAKE_PROGRESS_3) "Building CXX object CMakeFiles/gameboy.dir/src/emulator.cpp.o"
+	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green --progress-dir=/Users/shiraitouma/mintsPg/gameboy/build/CMakeFiles --progress-num=$(CMAKE_PROGRESS_4) "Building CXX object CMakeFiles/gameboy.dir/src/emulator.cpp.o"
 	/usr/bin/c++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -MD -MT CMakeFiles/gameboy.dir/src/emulator.cpp.o -MF CMakeFiles/gameboy.dir/src/emulator.cpp.o.d -o CMakeFiles/gameboy.dir/src/emulator.cpp.o -c /Users/shiraitouma/mintsPg/gameboy/src/emulator.cpp
 
 CMakeFiles/gameboy.dir/src/emulator.cpp.i: cmake_force
@@ -117,7 +131,7 @@ CMakeFiles/gameboy.dir/src/emulator.cpp.s: cmake_force
 CMakeFiles/gameboy.dir/src/input.cpp.o: CMakeFiles/gameboy.dir/flags.make
 CMakeFiles/gameboy.dir/src/input.cpp.o: /Users/shiraitouma/mintsPg/gameboy/src/input.cpp
 CMakeFiles/gameboy.dir/src/input.cpp.o: CMakeFiles/gameboy.dir/compiler_depend.ts
-	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green --progress-dir=/Users/shiraitouma/mintsPg/gameboy/build/CMakeFiles --progress-num=$(CMAKE_PROGRESS_4) "Building CXX object CMakeFiles/gameboy.dir/src/input.cpp.o"
+	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green --progress-dir=/Users/shiraitouma/mintsPg/gameboy/build/CMakeFiles --progress-num=$(CMAKE_PROGRESS_5) "Building CXX object CMakeFiles/gameboy.dir/src/input.cpp.o"
 	/usr/bin/c++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -MD -MT CMakeFiles/gameboy.dir/src/input.cpp.o -MF CMakeFiles/gameboy.dir/src/input.cpp.o.d -o CMakeFiles/gameboy.dir/src/input.cpp.o -c /Users/shiraitouma/mintsPg/gameboy/src/input.cpp
 
 CMakeFiles/gameboy.dir/src/input.cpp.i: cmake_force
@@ -131,7 +145,7 @@ CMakeFiles/gameboy.dir/src/input.cpp.s: cmake_force
 CMakeFiles/gameboy.dir/src/main.cpp.o: CMakeFiles/gameboy.dir/flags.make
 CMakeFiles/gameboy.dir/src/main.cpp.o: /Users/shiraitouma/mintsPg/gameboy/src/main.cpp
 CMakeFiles/gameboy.dir/src/main.cpp.o: CMakeFiles/gameboy.dir/compiler_depend.ts
-	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green --progress-dir=/Users/shiraitouma/mintsPg/gameboy/build/CMakeFiles --progress-num=$(CMAKE_PROGRESS_5) "Building CXX object CMakeFiles/gameboy.dir/src/main.cpp.o"
+	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green --progress-dir=/Users/shiraitouma/mintsPg/gameboy/build/CMakeFiles --progress-num=$(CMAKE_PROGRESS_6) "Building CXX object CMakeFiles/gameboy.dir/src/main.cpp.o"
 	/usr/bin/c++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -MD -MT CMakeFiles/gameboy.dir/src/main.cpp.o -MF CMakeFiles/gameboy.dir/src/main.cpp.o.d -o CMakeFiles/gameboy.dir/src/main.cpp.o -c /Users/shiraitouma/mintsPg/gameboy/src/main.cpp
 
 CMakeFiles/gameboy.dir/src/main.cpp.i: cmake_force
@@ -145,7 +159,7 @@ CMakeFiles/gameboy.dir/src/main.cpp.s: cmake_force
 CMakeFiles/gameboy.dir/src/memory.cpp.o: CMakeFiles/gameboy.dir/flags.make
 CMakeFiles/gameboy.dir/src/memory.cpp.o: /Users/shiraitouma/mintsPg/gameboy/src/memory.cpp
 CMakeFiles/gameboy.dir/src/memory.cpp.o: CMakeFiles/gameboy.dir/compiler_depend.ts
-	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green --progress-dir=/Users/shiraitouma/mintsPg/gameboy/build/CMakeFiles --progress-num=$(CMAKE_PROGRESS_6) "Building CXX object CMakeFiles/gameboy.dir/src/memory.cpp.o"
+	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green --progress-dir=/Users/shiraitouma/mintsPg/gameboy/build/CMakeFiles --progress-num=$(CMAKE_PROGRESS_7) "Building CXX object CMakeFiles/gameboy.dir/src/memory.cpp.o"
 	/usr/bin/c++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -MD -MT CMakeFiles/gameboy.dir/src/memory.cpp.o -MF CMakeFiles/gameboy.dir/src/memory.cpp.o.d -o CMakeFiles/gameboy.dir/src/memory.cpp.o -c /Users/shiraitouma/mintsPg/gameboy/src/memory.cpp
 
 CMakeFiles/gameboy.dir/src/memory.cpp.i: cmake_force
@@ -159,7 +173,7 @@ CMakeFiles/gameboy.dir/src/memory.cpp.s: cmake_force
 CMakeFiles/gameboy.dir/src/ppu.cpp.o: CMakeFiles/gameboy.dir/flags.make
 CMakeFiles/gameboy.dir/src/ppu.cpp.o: /Users/shiraitouma/mintsPg/gameboy/src/ppu.cpp
 CMakeFiles/gameboy.dir/src/ppu.cpp.o: CMakeFiles/gameboy.dir/compiler_depend.ts
-	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green --progress-dir=/Users/shiraitouma/mintsPg/gameboy/build/CMakeFiles --progress-num=$(CMAKE_PROGRESS_7) "Building CXX object CMakeFiles/gameboy.dir/src/ppu.cpp.o"
+	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green --progress-dir=/Users/shiraitouma/mintsPg/gameboy/build/CMakeFiles --progress-num=$(CMAKE_PROGRESS_8) "Building CXX object CMakeFiles/gameboy.dir/src/ppu.cpp.o"
 	/usr/bin/c++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -MD -MT CMakeFiles/gameboy.dir/src/ppu.cpp.o -MF CMakeFiles/gameboy.dir/src/ppu.cpp.o.d -o CMakeFiles/gameboy.dir/src/ppu.cpp.o -c /Users/shiraitouma/mintsPg/gameboy/src/ppu.cpp
 
 CMakeFiles/gameboy.dir/src/ppu.cpp.i: cmake_force
@@ -173,7 +187,7 @@ CMakeFiles/gameboy.dir/src/ppu.cpp.s: cmake_force
 CMakeFiles/gameboy.dir/src/timer.cpp.o: CMakeFiles/gameboy.dir/flags.make
 CMakeFiles/gameboy.dir/src/timer.cpp.o: /Users/shiraitouma/mintsPg/gameboy/src/timer.cpp
 CMakeFiles/gameboy.dir/src/timer.cpp.o: CMakeFiles/gameboy.dir/compiler_depend.ts
-	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green --progress-dir=/Users/shiraitouma/mintsPg/gameboy/build/CMakeFiles --progress-num=$(CMAKE_PROGRESS_8) "Building CXX object CMakeFiles/gameboy.dir/src/timer.cpp.o"
+	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green --progress-dir=/Users/shiraitouma/mintsPg/gameboy/build/CMakeFiles --progress-num=$(CMAKE_PROGRESS_9) "Building CXX object CMakeFiles/gameboy.dir/src/timer.cpp.o"
 	/usr/bin/c++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -MD -MT CMakeFiles/gameboy.dir/src/timer.cpp.o -MF CMakeFiles/gameboy.dir/src/timer.cpp.o.d -o CMakeFiles/gameboy.dir/src/timer.cpp.o -c /Users/shiraitouma/mintsPg/gameboy/src/timer.cpp
 
 CMakeFiles/gameboy.dir/src/timer.cpp.i: cmake_force
@@ -188,6 +202,7 @@ CMakeFiles/gameboy.dir/src/timer.cpp.s: cmake_force
 gameboy_OBJECTS = \
 "CMakeFiles/gameboy.dir/src/apu.cpp.o" \
 "CMakeFiles/gameboy.dir/src/cpu.cpp.o" \
+"CMakeFiles/gameboy.dir/src/display.cpp.o" \
 "CMakeFiles/gameboy.dir/src/emulator.cpp.o" \
 "CMakeFiles/gameboy.dir/src/input.cpp.o" \
 "CMakeFiles/gameboy.dir/src/main.cpp.o" \
@@ -200,6 +215,7 @@ gameboy_EXTERNAL_OBJECTS =
 
 gameboy: CMakeFiles/gameboy.dir/src/apu.cpp.o
 gameboy: CMakeFiles/gameboy.dir/src/cpu.cpp.o
+gameboy: CMakeFiles/gameboy.dir/src/display.cpp.o
 gameboy: CMakeFiles/gameboy.dir/src/emulator.cpp.o
 gameboy: CMakeFiles/gameboy.dir/src/input.cpp.o
 gameboy: CMakeFiles/gameboy.dir/src/main.cpp.o
@@ -207,8 +223,9 @@ gameboy: CMakeFiles/gameboy.dir/src/memory.cpp.o
 gameboy: CMakeFiles/gameboy.dir/src/ppu.cpp.o
 gameboy: CMakeFiles/gameboy.dir/src/timer.cpp.o
 gameboy: CMakeFiles/gameboy.dir/build.make
+gameboy: /usr/local/Cellar/sdl2/2.30.5/lib/libSDL2.dylib
 gameboy: CMakeFiles/gameboy.dir/link.txt
-	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green --bold --progress-dir=/Users/shiraitouma/mintsPg/gameboy/build/CMakeFiles --progress-num=$(CMAKE_PROGRESS_9) "Linking CXX executable gameboy"
+	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green --bold --progress-dir=/Users/shiraitouma/mintsPg/gameboy/build/CMakeFiles --progress-num=$(CMAKE_PROGRESS_10) "Linking CXX executable gameboy"
 	$(CMAKE_COMMAND) -E cmake_link_script CMakeFiles/gameboy.dir/link.txt --verbose=$(VERBOSE)
 
 # Rule to build all files generated by this target.

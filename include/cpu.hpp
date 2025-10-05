@@ -31,9 +31,9 @@ private:
     uint16_t SP;       // スタックポインタ
     int cycles;
 
-    bool ime = false; //割り込みフラグ
+    bool ime = false; // 割り込みマスターフラグ
     bool halted = false; // HALT状態フラグ
-    bool ei_delay = false; // EI命令の遅延フラグ
+    uint8_t ime_enable_delay = 0; // EI命令の遅延カウンタ
     void handleInterrupts();
     void executeCB();
     uint8_t& getRegisterRef(uint8_t code);

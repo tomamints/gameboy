@@ -10,6 +10,7 @@ set(CMAKE_DEPENDS_LANGUAGES
 set(CMAKE_DEPENDS_DEPENDENCY_FILES
   "/Users/shiraitouma/mintsPg/gameboy/src/apu.cpp" "CMakeFiles/gameboy.dir/src/apu.cpp.o" "gcc" "CMakeFiles/gameboy.dir/src/apu.cpp.o.d"
   "/Users/shiraitouma/mintsPg/gameboy/src/cpu.cpp" "CMakeFiles/gameboy.dir/src/cpu.cpp.o" "gcc" "CMakeFiles/gameboy.dir/src/cpu.cpp.o.d"
+  "/Users/shiraitouma/mintsPg/gameboy/src/display.cpp" "CMakeFiles/gameboy.dir/src/display.cpp.o" "gcc" "CMakeFiles/gameboy.dir/src/display.cpp.o.d"
   "/Users/shiraitouma/mintsPg/gameboy/src/emulator.cpp" "CMakeFiles/gameboy.dir/src/emulator.cpp.o" "gcc" "CMakeFiles/gameboy.dir/src/emulator.cpp.o.d"
   "/Users/shiraitouma/mintsPg/gameboy/src/input.cpp" "CMakeFiles/gameboy.dir/src/input.cpp.o" "gcc" "CMakeFiles/gameboy.dir/src/input.cpp.o.d"
   "/Users/shiraitouma/mintsPg/gameboy/src/main.cpp" "CMakeFiles/gameboy.dir/src/main.cpp.o" "gcc" "CMakeFiles/gameboy.dir/src/main.cpp.o.d"

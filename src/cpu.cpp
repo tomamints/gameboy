@@ -2494,6 +2494,7 @@ int CPU::step() {
 
         case 0xF3:  // DI
             ime = false;
+            ime_enable_delay = 0;  // 保留中のEIもキャンセル
             cycles += 4;
             std::cout << "DI (Disable Interrupts)\n";
             break;
@@ -2574,7 +2575,7 @@ int CPU::step() {
         }
 
         case 0xFB:  // EI
-            ei_delay = true;  // 次の命令実行後にIMEを有効にする
+            ime_enable_delay = 2;  // 次の命令完了後にIMEを有効化
             cycles += 4;
             std::cout << "EI (Enable Interrupts - delayed)\n";
             break;
@@ -2612,11 +2613,13 @@ int CPU::step() {
             break;
     }
 
-    // EI命令の遅延処理（次の命令実行後にIMEを有効にする）
-    if (ei_delay) {
-        ime = true;
-        ei_delay = false;
-        std::cout << "EI delay activated - IME now enabled\n";
+    // EI命令の遅延処理（次の命令完了後にIMEを有効にする）
+    if (ime_enable_delay > 0) {
+        ime_enable_delay--;
+        if (ime_enable_delay == 0) {
+            ime = true;
+            std::cout << "EI delay complete - IME enabled\n";
+        }
     }
 
     // デバッグ：異常なサイクル値を検出

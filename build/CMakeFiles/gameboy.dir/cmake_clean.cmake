@@ -3,6 +3,8 @@ file(REMOVE_RECURSE
   "CMakeFiles/gameboy.dir/src/apu.cpp.o.d"
   "CMakeFiles/gameboy.dir/src/cpu.cpp.o"
   "CMakeFiles/gameboy.dir/src/cpu.cpp.o.d"
+  "CMakeFiles/gameboy.dir/src/display.cpp.o"
+  "CMakeFiles/gameboy.dir/src/display.cpp.o.d"
   "CMakeFiles/gameboy.dir/src/emulator.cpp.o"
   "CMakeFiles/gameboy.dir/src/emulator.cpp.o.d"
   "CMakeFiles/gameboy.dir/src/input.cpp.o"

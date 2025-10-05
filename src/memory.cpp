@@ -1,9 +1,10 @@
 #include "memory.hpp"
 #include <fstream>
 #include <iostream>
+#include <iterator>
 
 Memory::Memory()
-    : rom(0x8000, 0),
+    : rom(),
       vram(0x2000, 0),
       wram(0x2000, 0),
       oam(0xA0, 0),
@@ -18,16 +19,34 @@ void Memory::loadROM(const std::string& path) { // メモリにROMを読み込�
         std::cerr << "Failed to open ROM file: " << path << std::endl;
         return;
     }
-    file.read(reinterpret_cast<char*>(&rom[0]), rom.size()); // ROM領域へコピー
+    rom.assign(std::istreambuf_iterator<char>(file), std::istreambuf_iterator<char>());
+    if (rom.empty()) {
+        std::cerr << "ROM file is empty: " << path << std::endl;
+        return;
+    }
+
+    if (rom.size() % 0x4000 != 0) {
+        size_t padded = ((rom.size() + 0x3FFF) / 0x4000) * 0x4000;
+        rom.resize(padded, 0xFF);
+    }
+
+    romBankCount = rom.size() / 0x4000;
+    if (romBankCount == 0) {
+        romBankCount = 1;
+    }
+    romBankLower = 1;
+    romBankUpper = 0;
+    mbc1Mode = 0;
+
     std::cout << "ROM loaded: " << path << std::endl;
-    std::cout << "I am Toma " << std::endl;
-    std::cout << " rom.size " << rom.size() << std::endl;
+    std::cout << "Total ROM size: " << rom.size() << " bytes (" << romBankCount << " banks)" << std::endl;
 }
 
 uint8_t Memory::readByte(uint16_t addr) const { // メモリからバイトを読み込む
     if (addr < 0x8000) {
-        return rom[addr];
+        return readROM(addr);
     } else if (addr < 0xA000) {
+        if (vramLocked) return 0xFF;
         return vram[addr - 0x8000]; // ビデオRAMを返す
     } else if (addr < 0xC000) {
         // カートリッジRAM未実装
@@ -38,6 +57,7 @@ uint8_t Memory::readByte(uint16_t addr) const { // メモリからバイトを�
         // Echo RAM →WRAMを返す
         return wram[addr - 0xE000];
     } else if (addr < 0xFEA0) {
+        if (oamLocked) return 0xFF;
         return oam[addr - 0xFE00]; // オブジェクト属性メモリを返す
     } else if (addr < 0xFF00) {
         // 未実装領域
@@ -74,9 +94,20 @@ uint8_t Memory::readByte(uint16_t addr) const { // メモリからバイトを�
 }
 
 void Memory::writeByte(uint16_t addr, uint8_t val) {
-    if (addr < 0x8000) {
-        // ROMは書き込めない
+    if (addr < 0x2000) {
+        // RAM有効化コマンド（未使用）
+    } else if (addr < 0x4000) {
+        romBankLower = val & 0x1F;
+        if ((romBankLower & 0x1F) == 0) {
+            romBankLower = 1;
+        }
+    } else if (addr < 0x6000) {
+        romBankUpper = val & 0x03;
+    } else if (addr < 0x8000) {
+        mbc1Mode = val & 0x01;
+        // RAMバンク未実装のため実質ROMバンクモードのみ
     } else if (addr < 0xA000) {
+        if (vramLocked) return;
         vram[addr - 0x8000] = val;
     } else if (addr < 0xC000) {
         // カートリッジRAM未実装
@@ -85,6 +116,7 @@ void Memory::writeByte(uint16_t addr, uint8_t val) {
     } else if (addr < 0xFE00) {
         wram[addr - 0xE000] = val;         // Echo RAM
     } else if (addr < 0xFEA0) {
+        if (oamLocked) return;
         oam[addr - 0xFE00] = val;
     } else if (addr < 0xFF00) {
         // 未使用
@@ -124,4 +156,51 @@ void Memory::writeByte(uint16_t addr, uint8_t val) {
     } else if (addr == 0xFFFF) {
         ie = val;
     }
+}
+
+size_t Memory::currentROMBank() const {
+    if (romBankCount == 0) {
+        return 0;
+    }
+
+    uint8_t bank = (romBankUpper << 5) | (romBankLower & 0x1F);
+
+    if ((bank & 0x1F) == 0 && romBankCount > 1) {
+        bank |= 0x01;
+    }
+
+    bank %= static_cast<uint8_t>(romBankCount);
+    if (bank >= romBankCount && romBankCount > 0) {
+        bank = static_cast<uint8_t>(romBankCount - 1);
+    }
+
+    if (bank == 0 && romBankCount > 1) {
+        bank = 1;
+    }
+
+    return bank;
+}
+
+uint8_t Memory::readROM(uint16_t addr) const {
+    if (rom.empty()) {
+        return 0xFF;
+    }
+
+    if (addr < 0x4000) {
+        size_t index = addr;
+        if (index < rom.size()) {
+            return rom[index];
+        }
+        return 0xFF;
+    }
+
+    size_t bank = currentROMBank();
+    size_t offset = addr - 0x4000;
+    size_t base = bank * 0x4000;
+    size_t index = base + offset;
+    if (index < rom.size()) {
+        return rom[index];
+    }
+
+    return 0xFF;
 }
