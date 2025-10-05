@@ -30,6 +30,7 @@ void PPU::reset() {
     bgFifo.clear();
     scxDiscard            = 0;
     fetcherState          = 0;
+    fetcherDotCounter     = 0;
     mode                  = 2;
     memory.LY             = 0;
     for (int y = 0; y < 144; ++y) {
@@ -53,6 +54,7 @@ void PPU::step(int cycles) {
         bgFifo.clear();
         scxDiscard = 0;
         fetcherState = 0;
+        fetcherDotCounter = 0;
         memory.LY = 0;
         memory.vramLocked = false;
         memory.oamLocked = false;
@@ -62,6 +64,7 @@ void PPU::step(int cycles) {
 
     for (int i = 0; i < cycles; ++i) {
         // 可視ライン中（LY=0..143）
+        updateCoincidence(); // LYC=LY割り込みチェック
         if (currentLine < VBLANK_START) {
             // ── 行内のモード切替を dotCounter でスイッチ ──
             switch (dotCounter) {
@@ -106,7 +109,6 @@ void PPU::step(int cycles) {
 
             // LY/STAT更新
             memory.LY = currentLine;
-            //updateCoincidence(); // LYC=LY割り込みチェック
 
             // VBlank開始/フレーム終了
             if (currentLine == VBLANK_START) {
@@ -167,6 +169,7 @@ void PPU::enterMode2() { //OAM find
     bgFifo.clear();
     fetcherState = 0;
     fetcherX = 0;
+    fetcherDotCounter = 0;
 
     scxDiscard = memory.SCX & 0x07;
 
@@ -177,7 +180,15 @@ void PPU::enterMode2() { //OAM find
     windowLineStarted = false;
     windowEnabledThisLine =
         ((memory.LCDC & 0x20) != 0) && ((memory.LCDC & 0x01) != 0) && currentLine >= memory.WY && memory.WX <= 166;
-    windowTriggerX = std::min(159, std::max(0, static_cast<int>(memory.WX) -7));
+    // WX=0の特殊処理: WX=0のときはウィンドウが画面外で1ドット分ずれる
+    if (memory.WX == 0) {
+        windowTriggerX = -1;  // 画面外なので実質的に発火しない
+        windowEnabledThisLine = false;  // WX=0は事実上無効扱い
+    } else if (memory.WX < 7) {
+        windowTriggerX = 0;  // WX=1-6は左端から
+    } else {
+        windowTriggerX = static_cast<int>(memory.WX) - 7;
+    }
 
     spriteCount = 0;
     // スプライト処理は一旦無効化
@@ -190,6 +201,7 @@ void PPU::enterMode3() {
     // VRAMもロックして描画開始
     memory.oamLocked = true;
     memory.vramLocked = true;
+    fetcherDotCounter = 0;  // Mode3開始時にフェッチャーカウンタリセット
 }
 
 void PPU::enterMode0() {
@@ -209,19 +221,33 @@ void PPU::enterVBlank() {
 
 
 void PPU::stepMode3(int dotCounter) {
-  // 画面上のX（Mode3開始からの相対）
-  int screenX = dotCounter - MODE3_START;
+  // フェッチャーカウンタ更新
+  fetcherDotCounter++;
 
-  // ウィンドウ処理は一旦無効化
-  // TODO: 後でウィンドウ実装時に有効化
+  // 画面上のX座標計算（ウィンドウ切り替え判定用）
+  int screenX = dotCounter - MODE3_START -8 ;
+
+  // ウィンドウ切り替え処理
+  // Window判定は描画位置より早めに行う（フェッチャー遅延を考慮）
+  int windowCheckX = dotCounter - MODE3_START;
+  if (!windowActive && windowEnabledThisLine && windowCheckX >= windowTriggerX) {
+    windowActive = true;
+    windowLineStarted = true;
+    fetcherX = 0;
+    fetcherState = 0;
+    scxDiscard = 0;
+    bgFifo.clear();
+    // Window切り替え時もフェッチャー遅延をリセット
+    fetcherDotCounter = 0;
+  }
 
   const bool bgEnabled = (memory.LCDC & 0x01) != 0;
 
   // ---- BG FIFO が細りすぎたら補充（<=8くらいを目安）----
-  if (bgFifo.size() <= 8) {
+  if (bgFifo.size() < 8) {
     switch (fetcherState) {
       case 0: { // タイル番号取得
-        fetchUsingWindow = false; // ウィンドウ無効化
+        fetchUsingWindow = windowActive && windowEnabledThisLine;
 
         // タイルマップ基底アドレス
         uint16_t tileMapBase = fetchUsingWindow
@@ -293,12 +319,12 @@ void PPU::stepMode3(int dotCounter) {
   }
 
   // ---- ここから1px出力 ----
-
+  
   // FIFOが空なら描けない
   if (bgFifo.empty()) return;
 
-  // 左端スクロール捨て処理
-  if (scxDiscard > 0) {
+  // 左端スクロール捨て処理（Windowではスクロール無効）
+  if (scxDiscard > 0 && !windowActive) {
     bgFifo.pop_front();
     --scxDiscard;
     return;

@@ -47,6 +47,7 @@ private:
     bool windowEnabledThisLine = false;
     int windowTriggerX = 0;
     uint8_t scxDiscard = 0;
+    int fetcherDotCounter = 0;      // フェッチャーの動作ドット数カウンタ
 
     SpriteLine spriteLineBuffer[10];
     int spriteCount = 0;
