@@ -236,7 +236,6 @@ void PPU::stepMode3(int dotCounter) {
     fetcherX = 0;
     fetcherState = 0;
     scxDiscard = 0;
-    bgFifo.clear();
     // Window切り替え時もフェッチャー遅延をリセット
     fetcherDotCounter = 0;
   }
@@ -319,7 +318,7 @@ void PPU::stepMode3(int dotCounter) {
   }
 
   // ---- ここから1px出力 ----
-  
+
   // FIFOが空なら描けない
   if (bgFifo.empty()) return;
 
