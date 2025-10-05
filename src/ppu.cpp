@@ -191,8 +191,7 @@ void PPU::enterMode2() { //OAM find
     }
 
     spriteCount = 0;
-    // スプライト処理は一旦無効化
-    // TODO: 後でスプライト実装時に有効化
+    gatherSprites();
 
 }
 
@@ -341,9 +340,37 @@ void PPU::stepMode3(int dotCounter) {
   bgFifo.pop_front();
 
   uint32_t pixel = decodeDMGColor(memory.BGP, bgColorId);
+  uint8_t finalColor = bgColorId;
+  bool bgOpaque = (bgColorId != 0);
 
-  // スプライト処理は一旦無効化
-  // TODO: 後でスプライト実装時に有効化
+  // スプライト処理
+  int spriteScreenX = dotCounter - MODE3_START - 6;  // スプライト用座標
+
+  for (int s = 0; s < spriteCount; ++s) {
+    const SpriteLine& spr = spriteLineBuffer[s];
+
+    // X座標範囲チェック
+    if (spriteScreenX < spr.x || spriteScreenX >= spr.x + 8) {
+      continue;
+    }
+
+    // スプライトピクセル取得
+    uint8_t spriteColor = spr.pixels[spriteScreenX - spr.x];
+    if (spriteColor == 0) {  // 透明ピクセル
+      continue;
+    }
+
+    // Priority処理：スプライトが背景より後ろ && 背景が不透明なら表示しない
+    if (spr.priority && bgOpaque) {
+      continue;
+    }
+
+    // スプライト色を採用
+    pixel = decodeDMGColor(spr.palette, spriteColor);
+    finalColor = spriteColor;
+    bgOpaque = true;
+    break;  // 最初に見つかったスプライトを採用（優先度順）
+  }
 
   framebuffer[currentLine * 160 + screenX] = pixel;
 
@@ -389,6 +416,68 @@ void PPU::saveFramePPM(const std::string& path) const {
             out.put(static_cast<char>(r));
             out.put(static_cast<char>(g));
             out.put(static_cast<char>(b));
+        }
+    }
+}
+
+void PPU::gatherSprites() {
+    // スプライト無効なら何もしない
+    if ((memory.LCDC & 0x02) == 0) {
+        spriteCount = 0;
+        return;
+    }
+
+    int spriteHeight = (memory.LCDC & 0x04) ? 16 : 8;  // 8x8 or 8x16
+    spriteCount = 0;
+
+    // OAMから40個のスプライトをチェック（最大10個まで）
+    for (int i = 0; i < 40 && spriteCount < 10; ++i) {
+        uint16_t oamAddr = 0xFE00 + i * 4;
+        uint8_t y = readPPUByte(oamAddr);
+        uint8_t x = readPPUByte(oamAddr + 1);
+        uint8_t tile = readPPUByte(oamAddr + 2);
+        uint8_t attr = readPPUByte(oamAddr + 3);
+
+        // スプライト位置調整（GBはY-16, X-8）
+        int spriteY = static_cast<int>(y) - 16;
+        int spriteX = static_cast<int>(x) - 8;
+
+        // 現在ラインと重なるかチェック
+        if (spriteY <= static_cast<int>(currentLine) &&
+            static_cast<int>(currentLine) < spriteY + spriteHeight) {
+
+            SpriteLine& info = spriteLineBuffer[spriteCount++];
+            info.x = spriteX;
+            info.priority = (attr & 0x80) != 0;  // OBJ-to-BG Priority
+            info.palette = (attr & 0x10) ? memory.OBP1 : memory.OBP0;
+            info.attr = attr;
+            info.tile = tile;
+
+            // スプライト内での行位置計算
+            int lineInSprite = static_cast<int>(currentLine) - spriteY;
+
+            // Y-flip処理
+            if (attr & 0x40) {
+                lineInSprite = spriteHeight - 1 - lineInSprite;
+            }
+
+            // 8x16モードでは下位1bitを0にする
+            if (spriteHeight == 16) {
+                tile &= 0xFE;
+            }
+
+            // タイルデータ読み込み（スプライトは常に0x8000-0x8FFF）
+            uint16_t tileAddr = 0x8000 + tile * 16 + lineInSprite * 2;
+            uint8_t low = readPPUByte(tileAddr);
+            uint8_t high = readPPUByte(tileAddr + 1);
+
+            // 8ピクセル分のデータを準備
+            for (int px = 0; px < 8; ++px) {
+                int bit = (attr & 0x20) ? px : (7 - px);  // X-flip処理
+                info.pixels[px] = static_cast<uint8_t>(
+                    ((high >> bit) & 0x01) << 1 | ((low >> bit) & 0x01)
+                );
+            }
         }
     }
 }

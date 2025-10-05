@@ -62,6 +62,7 @@ void PPU::step(int cycles) {
     }
 
     for (int i = 0; i < cycles; ++i) {
+        updateCoincidence();
         if (currentLine < VBLANK_START) {
             if (dotCounter == 0) {
                 enterMode2();
@@ -99,7 +100,6 @@ void PPU::step(int cycles) {
             }
 
             memory.LY = currentLine;
-            updateCoincidence();
         }
     }
 }
@@ -238,7 +238,7 @@ void PPU::gatherSprites() {
 }
 
 void PPU::stepMode3() {
-    int screenX = dotCounter - MODE3_START;
+    int screenX = dotCounter - MODE3_START-8;
 
     if (!windowActive && windowEnabledThisLine && screenX >= windowTriggerX) {
         windowActive = true;
