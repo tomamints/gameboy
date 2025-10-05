@@ -20,6 +20,8 @@ private:
         uint8_t palette;
         bool priority;
         uint8_t pixels[8];
+        uint8_t attr;
+        uint8_t tile;
     };
 
     Memory& memory;
@@ -55,7 +57,7 @@ private:
     void enterMode3();
     void enterMode0();
     void enterVBlank();
-    void stepMode3();
+    void stepMode3(int dotCounter);
     void gatherSprites();
     uint8_t readPPUByte(uint16_t addr);
     uint32_t decodeDMGColor(uint8_t palette, uint8_t colorId) const;

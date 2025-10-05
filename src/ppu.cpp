@@ -31,14 +31,13 @@ void PPU::reset() {
     scxDiscard            = 0;
     fetcherState          = 0;
     mode                  = 2;
-    coincidence           = false;
     memory.LY             = 0;
-    memory.vramLocked     = false;
-    memory.oamLocked      = false;
+    for (int y = 0; y < 144; ++y) {
+        for (int x = 0; x < 160; ++x) {
+            framebuffer[y * 160 + x] = 0x00000000;  // 灰色で塗りつぶす例
+        }
+}
 
-    uint8_t stat = memory.STAT & 0xF8;
-    memory.STAT = stat | (mode & 0x03);
-    updateCoincidence();
 }
 
 void PPU::step(int cycles) {
@@ -62,322 +61,287 @@ void PPU::step(int cycles) {
     }
 
     for (int i = 0; i < cycles; ++i) {
+        // 可視ライン中（LY=0..143）
         if (currentLine < VBLANK_START) {
-            if (dotCounter == 0) {
-                enterMode2();
-            } else if (dotCounter == MODE3_START) {
-                enterMode3();
-            } else if (dotCounter == MODE0_START) {
-                enterMode0();
+            // ── 行内のモード切替を dotCounter でスイッチ ──
+            switch (dotCounter) {
+                case 0:
+                    enterMode2();
+                    break;  // 行頭: OAM検索開始 (Mode2)
+                case MODE3_START:
+                    enterMode3(); break;  // dot=80: 描画開始 (Mode3)
+                case MODE0_START:
+                    enterMode0(); break;  // dot=252: HBlankへ (Mode0)
+                default: break;
             }
-        } else if (mode != 1) {
-            enterVBlank();
+
+            if (dotCounter >= MODE3_START && dotCounter < MODE0_START) {
+                stepMode3(dotCounter);
+            }
+        }
+        // VBlankライン（LY=144..153）
+        else {
+            // VBlankにまだ入っていなければ一度だけ入る
+            if (mode != 1 && dotCounter == 0) {
+                enterVBlank();           // Mode1 + IF(VBlank) 立てる
+            }
         }
 
-        if (mode == 3) {
-            stepMode3();
-        }
+        // ── ドット進行 ──
+        ++dotCounter;
 
-        dotCounter++;
-
-        if (dotCounter >= SCANLINE_CYCLES) {
+        // ── 行末処理 ──
+        if (dotCounter == SCANLINE_CYCLES) { // 456dot ちょうどで行送り
             dotCounter = 0;
 
-        if (currentLine < VBLANK_START && windowEnabledThisLine && windowLineStarted) {
-            windowLineCounter++;
-        }
-        windowLineStarted = false;
-        windowActive = false;
+            // Window行カウンタの更新（その行で一度でもWindow描画したら）
+            if (currentLine < VBLANK_START && windowEnabledThisLine && windowLineStarted) {
+                ++windowLineCounter;
+            }
+            windowLineStarted = false;
+            windowActive = false;
 
+            // 次の行へ
             currentLine++;
 
+            // LY/STAT更新
+            memory.LY = currentLine;
+            //updateCoincidence(); // LYC=LY割り込みチェック
+
+            // VBlank開始/フレーム終了
             if (currentLine == VBLANK_START) {
-                enterVBlank();
+                enterVBlank();   // 念のため境界でも一度だけ
             } else if (currentLine >= TOTAL_LINES) {
                 currentLine = 0;
+                memory.LY = 0;
                 windowLineCounter = 0;
+                // 次行の dot=0 ケースで enterMode2() が呼ばれる
             }
-
-            memory.LY = currentLine;
-            updateCoincidence();
         }
     }
+
+
+    return;
 }
+
 
 void PPU::setMode(uint8_t newMode) {
     newMode &= 0x03;
     if (mode == newMode) {
-        // 下位ビットの再同期のみ
-        uint8_t stat = memory.STAT & 0xF8;
-        memory.STAT = stat | (coincidence ? 0x04 : 0) | mode;
+        uint8_t stat = (memory.STAT & 0xF8) | (coincidence ? 0x04 : 0) | mode;
+        memory.STAT = stat;
         return;
     }
 
-    uint8_t prevStat = memory.STAT;
-    bool requestStatInterrupt = false;
-
-    if (newMode == 0 && (prevStat & 0x08)) {
-        requestStatInterrupt = true;
-    } else if (newMode == 1 && (prevStat & 0x10)) {
-        requestStatInterrupt = true;
-    } else if (newMode == 2 && (prevStat & 0x20)) {
-        requestStatInterrupt = true;
-    }
+    uint8_t prev = memory.STAT;
+    bool requestStat = false;
+    if (newMode == 0 && (prev & 0x08)) requestStat = true;
+    if (newMode == 1 && (prev & 0x10)) requestStat = true;
+    if (newMode == 2 && (prev & 0x20)) requestStat = true;
 
     mode = newMode;
-    uint8_t stat = (prevStat & 0xF8) | (coincidence ? 0x04 : 0) | mode;
-    memory.STAT = stat;
-
-    if (requestStatInterrupt) {
-        memory.if_reg |= 0x02;
-    }
+    memory.STAT = (prev & 0xF8) | (coincidence ? 0x04 : 0) | mode;
+    if (requestStat) memory.if_reg |= 0x02;  // STAT割り込み
 }
 
 void PPU::updateCoincidence() {
     bool match = (memory.LY == memory.LYC);
-    uint8_t prevStat = memory.STAT;
+    uint8_t prev = memory.STAT;
     if (match != coincidence) {
         coincidence = match;
-        if (coincidence && (prevStat & 0x40)) {
-            memory.if_reg |= 0x02;
+        if (coincidence && (prev & 0x40)) {
+            memory.if_reg |= 0x02;          // LYC=LY割り込み
         }
     }
-
-    uint8_t stat = (prevStat & 0xF8) | (coincidence ? 0x04 : 0) | mode;
-    memory.STAT = stat;
+    memory.STAT = (prev & 0xF8) | (coincidence ? 0x04 : 0) | mode;
 }
 
-void PPU::enterMode2() {
+
+
+void PPU::enterMode2() { //OAM find
     setMode(2);
+    // OAMをロック、スプライト探索など
     memory.oamLocked = true;
     memory.vramLocked = false;
 
-    spriteCount = 0;
-    gatherSprites();
-
-    if (currentLine == memory.WY) {
-        windowLineCounter = 0;
-    }
-
     bgFifo.clear();
-    fetcherX = 0;
     fetcherState = 0;
+    fetcherX = 0;
+
     scxDiscard = memory.SCX & 0x07;
+
     bgLineY = static_cast<uint8_t>(memory.SCY + currentLine);
+
+    //windorwの行頭判定
     windowActive = false;
     windowLineStarted = false;
-    windowEnabledThisLine = ((memory.LCDC & 0x20) != 0) && ((memory.LCDC & 0x01) != 0)
-                             && currentLine >= memory.WY && memory.WX <= 166;
-    windowTriggerX = std::min(159, std::max(0, static_cast<int>(memory.WX) - 7));
+    windowEnabledThisLine =
+        ((memory.LCDC & 0x20) != 0) && ((memory.LCDC & 0x01) != 0) && currentLine >= memory.WY && memory.WX <= 166;
+    windowTriggerX = std::min(159, std::max(0, static_cast<int>(memory.WX) -7));
+
+    spriteCount = 0;
+    // スプライト処理は一旦無効化
+    // TODO: 後でスプライト実装時に有効化
+
 }
 
 void PPU::enterMode3() {
-    setMode(3);
+    setMode(3);  // setMode()を使ってSTAT割り込み処理
+    // VRAMもロックして描画開始
     memory.oamLocked = true;
     memory.vramLocked = true;
-    bgFifo.clear();
-    fetcherX = 0;
-    fetcherState = 0;
 }
 
 void PPU::enterMode0() {
-    setMode(0);
+    setMode(0);  // setMode()を使ってSTAT割り込み処理
+    // ロック解除
     memory.oamLocked = false;
     memory.vramLocked = false;
 }
 
 void PPU::enterVBlank() {
-    setMode(1);
+    setMode(1);  // setMode()を使ってSTAT割り込み処理
+    // ロック解除＋VBlank割り込みをIFにセット
     memory.oamLocked = false;
     memory.vramLocked = false;
-    memory.if_reg |= 0x01;
+    memory.if_reg |= 0x01; // VBlank割り込み要求
 }
 
-void PPU::gatherSprites() {
-    if ((memory.LCDC & 0x02) == 0) {
-        spriteCount = 0;
-        return;
-    }
 
-    int spriteHeight = (memory.LCDC & 0x04) ? 16 : 8;
-    for (int i = 0; i < 40 && spriteCount < 10; ++i) {
-        uint16_t base = 0xFE00 + i * 4;
-        uint8_t y = readPPUByte(base);
-        uint8_t x = readPPUByte(base + 1);
-        uint8_t tile = readPPUByte(base + 2);
-        uint8_t attr = readPPUByte(base + 3);
+void PPU::stepMode3(int dotCounter) {
+  // 画面上のX（Mode3開始からの相対）
+  int screenX = dotCounter - MODE3_START;
 
-        int spriteY = static_cast<int>(y) - 16;
-        int spriteX = static_cast<int>(x) - 8;
+  // ウィンドウ処理は一旦無効化
+  // TODO: 後でウィンドウ実装時に有効化
 
-        if (spriteY <= static_cast<int>(currentLine) && static_cast<int>(currentLine) < spriteY + spriteHeight) {
-            SpriteLine& info = spriteLineBuffer[spriteCount++];
-            info.x = spriteX;
-            info.priority = (attr & 0x80) != 0;
-            info.palette = (attr & 0x10) ? memory.OBP1 : memory.OBP0;
+  const bool bgEnabled = (memory.LCDC & 0x01) != 0;
 
-            int lineIndex = static_cast<int>(currentLine) - spriteY;
-            if (attr & 0x40) {
-                lineIndex = spriteHeight - 1 - lineIndex;
-            }
+  // ---- BG FIFO が細りすぎたら補充（<=8くらいを目安）----
+  if (bgFifo.size() <= 8) {
+    switch (fetcherState) {
+      case 0: { // タイル番号取得
+        fetchUsingWindow = false; // ウィンドウ無効化
 
-            if (spriteHeight == 16) {
-                tile &= 0xFE;
-            }
+        // タイルマップ基底アドレス
+        uint16_t tileMapBase = fetchUsingWindow
+            ? ((memory.LCDC & 0x40) ? 0x9C00 : 0x9800)
+            : ((memory.LCDC & 0x08) ? 0x9C00 : 0x9800);
 
-            uint16_t tileAddr = 0x8000 + tile * 16 + lineIndex * 2;
-            uint8_t low = readPPUByte(tileAddr);
-            uint8_t high = readPPUByte(tileAddr + 1);
+        // タイル行・列
+        uint8_t tileRow = fetchUsingWindow
+            ? static_cast<uint8_t>((windowLineCounter >> 3) & 0x1F)
+            : static_cast<uint8_t>((bgLineY >> 3) & 0x1F);
+        uint8_t tileCol = fetchUsingWindow
+            ? static_cast<uint8_t>(fetcherX & 0x1F)
+            : static_cast<uint8_t>(((memory.SCX >> 3) + fetcherX) & 0x1F);
 
-            for (int px = 0; px < 8; ++px) {
-                int bit = (attr & 0x20) ? px : (7 - px);
-                info.pixels[px] = static_cast<uint8_t>(((high >> bit) & 0x01) << 1 | ((low >> bit) & 0x01));
-            }
-        }
-    }
-}
+        uint16_t tileMapAddr = tileMapBase + tileRow * 32 + tileCol;
 
-void PPU::stepMode3() {
-    int screenX = dotCounter - MODE3_START;
-
-    if (!windowActive && windowEnabledThisLine && screenX >= windowTriggerX) {
-        windowActive = true;
-        windowLineStarted = true;
-        fetcherX = 0;
-        fetcherState = 0;
-        scxDiscard = 0;
-        bgFifo.clear();
-    }
-
-    bool bgEnabled = (memory.LCDC & 0x01) != 0;
-
-    if (bgFifo.size() <= 8) {
-        switch (fetcherState) {
-            case 0: {
-                fetchUsingWindow = windowActive && windowEnabledThisLine;
-                uint16_t tileMapBase = fetchUsingWindow
-                    ? ((memory.LCDC & 0x40) ? 0x9C00 : 0x9800)
-                    : ((memory.LCDC & 0x08) ? 0x9C00 : 0x9800);
-
-                uint8_t tileRow = fetchUsingWindow
-                    ? static_cast<uint8_t>((windowLineCounter >> 3) & 0x1F)
-                    : static_cast<uint8_t>((bgLineY >> 3) & 0x1F);
-                uint8_t tileCol = fetchUsingWindow
-                    ? static_cast<uint8_t>(fetcherX & 0x1F)
-                    : static_cast<uint8_t>(((memory.SCX >> 3) + fetcherX) & 0x1F);
-                uint16_t tileMapAddr = tileMapBase + tileRow * 32 + tileCol;
-
-                fetchTileNumber = readPPUByte(tileMapAddr);
-                fetcherState = 1;
-                break;
-            }
-            case 1:
-                fetcherState = 2;
-                break;
-            case 2: {
-                bool unsignedIndex = (memory.LCDC & 0x10) != 0;
-                int16_t tileIndex = unsignedIndex
-                    ? static_cast<int16_t>(fetchTileNumber)
-                    : static_cast<int8_t>(fetchTileNumber);
-                uint16_t tileAddrBase = unsignedIndex ? 0x8000 : 0x9000;
-                uint8_t lineInTile = fetchUsingWindow
-                    ? static_cast<uint8_t>(windowLineCounter & 0x07)
-                    : static_cast<uint8_t>(bgLineY & 0x07);
-                fetchTileAddr = static_cast<uint16_t>(tileAddrBase + tileIndex * 16 + lineInTile * 2);
-                fetchDataLow = readPPUByte(fetchTileAddr);
-                fetcherState = 3;
-                break;
-            }
-            case 3:
-                fetcherState = 4;
-                break;
-            case 4:
-                fetchDataHigh = readPPUByte(fetchTileAddr + 1);
-                fetcherState = 5;
-                break;
-            case 5:
-                fetcherState = 6;
-                break;
-            case 6: {
-                for (int bit = 7; bit >= 0; --bit) {
-                    uint8_t color = 0;
-                    if (bgEnabled) {
-                        color = static_cast<uint8_t>(((fetchDataHigh >> bit) & 0x01) << 1 | ((fetchDataLow >> bit) & 0x01));
-                    }
-                    bgFifo.push_back(color);
-                }
-                fetcherX = static_cast<uint8_t>(fetcherX + 1);
-                fetcherState = 0;
-                break;
-            }
-        }
-    }
-
-    if (bgFifo.empty()) {
-        return;
-    }
-
-    if (scxDiscard > 0 && !windowActive) {
-        bgFifo.pop_front();
-        --scxDiscard;
-        return;
-    }
-
-    uint8_t bgColor = bgFifo.front();
-    bgFifo.pop_front();
-
-    if (screenX < 0 || screenX >= 160 || currentLine >= 144) {
-        return;
-    }
-
-    uint32_t pixel = decodeDMGColor(memory.BGP, bgColor);
-    uint8_t finalColor = bgColor;
-    bool bgOpaque = bgColor != 0;
-
-    for (int s = 0; s < spriteCount; ++s) {
-        const SpriteLine& spr = spriteLineBuffer[s];
-        if (screenX < spr.x || screenX >= spr.x + 8) {
-            continue;
-        }
-
-        uint8_t spriteColor = spr.pixels[screenX - spr.x];
-        if (spriteColor == 0) {
-            continue;
-        }
-
-        if (spr.priority && bgOpaque) {
-            continue;
-        }
-
-        pixel = decodeDMGColor(spr.palette, spriteColor);
-        finalColor = spriteColor;
-        bgOpaque = true;
+        fetchTileNumber = readPPUByte(tileMapAddr);
+        fetcherState = 1; // ウェイト1
         break;
-    }
+      }
+      case 1:
+        fetcherState = 2; // Low取得へ
+        break;
 
-    framebuffer[currentLine * 160 + screenX] = pixel;
-    bgLineColor[screenX] = finalColor;
+      case 2: { // タイルラインLow取得
+        bool unsignedIndex = (memory.LCDC & 0x10) != 0; // 1:0x8000, 0:0x8800(符号付き)
+        int16_t tileIndex = unsignedIndex
+            ? static_cast<int16_t>(fetchTileNumber)
+            : static_cast<int8_t>(fetchTileNumber); // 符号拡張
+
+        uint16_t tileAddrBase = unsignedIndex ? 0x8000 : 0x9000;
+
+        uint8_t lineInTile = fetchUsingWindow
+            ? static_cast<uint8_t>(windowLineCounter & 0x07)
+            : static_cast<uint8_t>(bgLineY & 0x07);
+
+        fetchTileAddr = static_cast<uint16_t>(tileAddrBase + tileIndex * 16 + lineInTile * 2);
+        fetchDataLow = readPPUByte(fetchTileAddr);
+        fetcherState = 3; // ウェイト
+        break;
+      }
+      case 3:
+        fetcherState = 4; // High取得へ
+        break;
+
+      case 4: // タイルラインHigh取得
+        fetchDataHigh = readPPUByte(fetchTileAddr + 1);
+        fetcherState = 5; // ウェイト
+        break;
+
+      case 5:
+        fetcherState = 6; // pushへ
+        break;
+
+      case 6: { // 8px を FIFO へ
+        for (int bit = 7; bit >= 0; --bit) {
+          uint8_t color = 0;
+          if (bgEnabled) {
+            color = static_cast<uint8_t>(((fetchDataHigh >> bit) & 0x01) << 1 |
+                                         ((fetchDataLow  >> bit) & 0x01));
+          }
+          bgFifo.push_back(color);
+        }
+        fetcherX = static_cast<uint8_t>(fetcherX + 1);
+        fetcherState = 0;
+        break;
+      }
+    }
+  }
+
+  // ---- ここから1px出力 ----
+
+  // FIFOが空なら描けない
+  if (bgFifo.empty()) return;
+
+  // 左端スクロール捨て処理
+  if (scxDiscard > 0) {
+    bgFifo.pop_front();
+    --scxDiscard;
+    return;
+  }
+
+  // 画面範囲＆可視ライン内のみ描く
+  if (screenX < 0 || screenX >= 160 || currentLine >= 144) {
+    // ピクセルを消費はする（Mode3の進行を模すなら pop してもよい）
+    bgFifo.pop_front();
+    return;
+  }
+
+  // BGの2bit色 → DMGパレット(BGP)で 4階調ARGBへ
+  uint8_t bgColorId = bgFifo.front();
+  bgFifo.pop_front();
+
+  uint32_t pixel = decodeDMGColor(memory.BGP, bgColorId);
+
+  // スプライト処理は一旦無効化
+  // TODO: 後でスプライト実装時に有効化
+
+  framebuffer[currentLine * 160 + screenX] = pixel;
+
+
 }
 
+
+// ▼▼▼ これを ppu.cpp に追加してください（1箇所だけ） ▼▼▼
 uint8_t PPU::readPPUByte(uint16_t addr) {
     bool vramPrev = memory.vramLocked;
-    bool oamPrev = memory.oamLocked;
-    memory.vramLocked = false;
-    memory.oamLocked = false;
-    uint8_t value = memory.readByte(addr);
+    bool oamPrev  = memory.oamLocked;
+    memory.vramLocked = false;   // PPU内部読み込みなので一時的にロック解除
+    memory.oamLocked  = false;
+    uint8_t v = memory.readByte(addr);
     memory.vramLocked = vramPrev;
-    memory.oamLocked = oamPrev;
-    return value;
+    memory.oamLocked  = oamPrev;
+    return v;
 }
 
 uint32_t PPU::decodeDMGColor(uint8_t palette, uint8_t colorId) const {
     static constexpr uint32_t COLORS[4] = {
-        0xFFFFFFFF,
-        0xFFBFBFBF,
-        0xFF7F7F7F,
-        0xFF1F1F1F
+        0xFFFFFFFF, 0xFFBFBFBF, 0xFF7F7F7F, 0xFF1F1F1F
     };
-
     uint8_t shade = (palette >> (colorId * 2)) & 0x03;
     return COLORS[shade];
 }
