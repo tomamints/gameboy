@@ -388,8 +388,8 @@ void PPU::stepMode3(int dotCounter) {
   for (int s = 0; s < spriteCount; ++s) {
     const SpriteLine& spr = spriteLineBuffer[s];
 
-    // line 0x58と0x59のスプライトデバッグ
-    if ((currentLine == 0x58 || currentLine == 0x59) && screenX >= 0 && screenX < 160) {
+    // line 42-49 (0x2A-0x31) のスプライトデバッグ
+    if ((currentLine >= 0x2A && currentLine <= 0x31) && screenX >= 0 && screenX < 160) {
       // 最初のspriteだけ、または重要な位置でのみ詳細表示
       if (s == 0 || (spriteScreenX >= spr.x && spriteScreenX < spr.x + 8)) {
         std::cout << "LINE" << std::hex << (int)currentLine << std::dec
@@ -398,26 +398,13 @@ void PPU::stepMode3(int dotCounter) {
                   << "sprX=" << std::setw(3) << spr.x
                   << " scrX=" << std::setw(3) << spriteScreenX
                   << " tile=" << std::hex << (int)spr.tile << std::dec
-                  << " attr=" << std::hex << (int)spr.attr << std::dec;
+                  << " attr=" << std::hex << (int)spr.attr << std::dec
+                  << " prio=" << spr.priority;
 
         if (spriteScreenX >= spr.x && spriteScreenX < spr.x + 8) {
           int pixelIndex = spriteScreenX - spr.x;
           uint8_t spriteColor = spr.pixels[pixelIndex];
-
-          // 現在のVRAMの値を読んで比較
-          int lineInSprite = currentLine - (spr.x < 0 ? currentLine : currentLine - 88);
-          if (spr.attr & 0x40) {
-              lineInSprite = 7 - lineInSprite;
-          }
-          uint16_t currentAddr = 0x8000 + spr.tile * 16 + lineInSprite * 2;
-          uint8_t currentLow = readPPUByte(currentAddr);
-          uint8_t currentHigh = readPPUByte(currentAddr + 1);
-          int bit = (spr.attr & 0x20) ? pixelIndex : (7 - pixelIndex);
-          uint8_t currentColor = ((currentHigh >> bit) & 0x01) << 1 | ((currentLow >> bit) & 0x01);
-
-          std::cout << " px[" << pixelIndex << "]=" << (int)spriteColor
-                    << " (current VRAM would be " << (int)currentColor << ")"
-                    << " prio=" << spr.priority;
+          std::cout << " px[" << pixelIndex << "]=" << (int)spriteColor;
         }
         std::cout << " sprCnt=" << spriteCount << std::endl;
       }
@@ -578,5 +565,25 @@ void PPU::gatherSprites() {
                 );
             }
         }
+    }
+
+    // スプライト優先度ソート（X座標優先、同じ場合はOAMインデックス優先）
+    std::sort(spriteLineBuffer, spriteLineBuffer + spriteCount,
+              [](const SpriteLine& a, const SpriteLine& b) {
+                  if (a.x != b.x) return a.x < b.x;  // X座標で優先
+                  // X座標が同じ場合はOAMインデックス（収集順）で優先
+                  return false;  // 安定ソートで元の順序を保持
+              });
+
+    // LINE 42-49 (0x2A-0x31) でのsprite収集結果を確認
+    if (currentLine >= 0x2A && currentLine <= 0x31) {
+        std::cout << "[GATHER] LINE " << std::hex << (int)currentLine << std::dec
+                  << " found " << spriteCount << " sprites (sorted by X):";
+        for (int i = 0; i < spriteCount; ++i) {
+            std::cout << " [" << i << "]x=" << spriteLineBuffer[i].x
+                      << "/tile=" << std::hex << (int)spriteLineBuffer[i].tile << std::dec
+                      << "/prio=" << spriteLineBuffer[i].priority;
+        }
+        std::cout << std::endl;
     }
 }
