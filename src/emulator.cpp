@@ -5,7 +5,10 @@
 Emulator::Emulator()
     : ppu(memory),
       cpu(&memory, &ppu),
-      timer(&memory) {}
+      timer(&memory) {
+    // MemoryにInputの参照を設定
+    memory.setInputReference(&input);
+}
 
 void Emulator::loadROM(const std::string& path) {
     memory.loadROM(path);
@@ -52,6 +55,7 @@ void Emulator::run() {
         for (int i = 0; i < cycles; i++) {
             ppu.step(1);
             timer.step(1);
+            memory.stepDMA();  // OAM DMA処理
             totalCycles++;
         }
 
@@ -152,6 +156,7 @@ void Emulator::runWithDisplay() {
         for (int i = 0; i < cycles; i++) {
             ppu.step(1);
             timer.step(1);
+            memory.stepDMA();  // OAM DMA処理
             totalCycles++;
         }
 
@@ -160,8 +165,8 @@ void Emulator::runWithDisplay() {
             display.updateFrame(ppu.getFrameBuffer());
             frameCount++;
 
-            // SDL2イベント処理
-            if (!display.handleEvents()) {
+            // SDL2イベント処理 (Inputも一緒に渡す)
+            if (!display.handleEvents(&input)) {
                 std::cout << "\n[INFO] ユーザーによる終了\n";
                 break;
             }

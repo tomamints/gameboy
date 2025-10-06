@@ -3,12 +3,21 @@
 #include <vector>
 #include <string>
 
+class Input;  // 前方宣言
+
 class Memory {
 public:
     Memory();
     void loadROM(const std::string& path);
     uint8_t readByte(uint16_t addr) const;
     void writeByte(uint16_t addr, uint8_t val);
+
+    // OAM DMA関連
+    void stepDMA();
+    void startDMA(uint8_t sourcePage);
+
+    // Input関連
+    void setInputReference(Input* inputPtr);
 
     uint8_t LY = 0;
     uint8_t if_reg = 0x00;
@@ -29,9 +38,18 @@ public:
     uint8_t OBP1 = 0xFF; // 0xFF49 OBJパレット1
     uint8_t WY = 0;      // 0xFF4A ウィンドウY
     uint8_t WX = 0;      // 0xFF4B ウィンドウX
+    uint8_t DMA = 0;     // 0xFF46 DMA転送
 
     bool vramLocked = false;
     bool oamLocked  = false;
+
+    // OAM DMA関連
+    bool dmaActive = false;
+    uint16_t dmaSource = 0;
+    uint8_t dmaCycles = 0;
+
+    // Input関連
+    Input* input = nullptr;
 
 private:
     std::vector<uint8_t> rom; // 完全なROMデータ（バンク切り替え対応）

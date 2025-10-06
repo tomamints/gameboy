@@ -1,4 +1,5 @@
 #include "memory.hpp"
+#include "input.hpp"
 #include <fstream>
 #include <iostream>
 #include <iterator>
@@ -64,6 +65,11 @@ uint8_t Memory::readByte(uint16_t addr) const { // メモリからバイトを�
         return 0;
     } else if (addr >= 0xFF00 && addr < 0xFF80) {
         switch(addr) {
+            case 0xFF00:
+                if (input) {
+                    return input->getJoypadState();
+                }
+                return 0xFF;
             case 0xFF01: return SB;
             case 0xFF02: return SC;
             case 0xFF04: return DIV;
@@ -80,6 +86,7 @@ uint8_t Memory::readByte(uint16_t addr) const { // メモリからバイトを�
             case 0xFF47: return BGP;
             case 0xFF48: return OBP0;
             case 0xFF49: return OBP1;
+            case 0xFF46: return DMA;
             case 0xFF4A: return WY;
             case 0xFF4B: return WX;
             default: return 0xFF;  // 未実装は0xFFを返す
@@ -122,6 +129,11 @@ void Memory::writeByte(uint16_t addr, uint8_t val) {
         // 未使用
     } else if (addr >= 0xFF00 && addr < 0xFF80) {
         switch(addr) {
+            case 0xFF00: // Joypad
+                if (input) {
+                    input->setJoypadRegister(val);
+                }
+                break;
             case 0xFF01: // SB
                 std::cout << "\n\033[1;33;41m"   // 黄文字・赤背景
                           << "[SERIAL] SB ← 0x" << std::hex << (int)val
@@ -148,6 +160,7 @@ void Memory::writeByte(uint16_t addr, uint8_t val) {
             case 0xFF47: BGP = val; break;
             case 0xFF48: OBP0 = val; break;
             case 0xFF49: OBP1 = val; break;
+            case 0xFF46: DMA = val; startDMA(val); break;  // OAM DMA開始
             case 0xFF4A: WY = val; break;
             case 0xFF4B: WX = val; break;
         }
@@ -203,4 +216,32 @@ uint8_t Memory::readROM(uint16_t addr) const {
     }
 
     return 0xFF;
+}
+
+void Memory::startDMA(uint8_t sourcePage) {
+    dmaActive = true;
+    dmaSource = sourcePage << 8;  // ページ番号をアドレスに変換 (例: 0x20 → 0x2000)
+    dmaCycles = 0;
+    oamLocked = true;  // DMA中はOAMアクセス禁止
+}
+
+void Memory::stepDMA() {
+    if (!dmaActive) return;
+
+    // 160バイトを1サイクルずつ転送 (実際のGame Boyは160サイクル)
+    if (dmaCycles < 160) {
+        uint16_t sourceAddr = dmaSource + dmaCycles;
+        uint8_t data = readByte(sourceAddr);
+        oam[dmaCycles] = data;
+        dmaCycles++;
+    } else {
+        // DMA完了
+        dmaActive = false;
+        oamLocked = false;
+        dmaCycles = 0;
+    }
+}
+
+void Memory::setInputReference(Input* inputPtr) {
+    input = inputPtr;
 }

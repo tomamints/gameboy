@@ -388,8 +388,8 @@ void PPU::stepMode3(int dotCounter) {
   for (int s = 0; s < spriteCount; ++s) {
     const SpriteLine& spr = spriteLineBuffer[s];
 
-    // line 42-49 (0x2A-0x31) のスプライトデバッグ
-    if ((currentLine >= 0x2A && currentLine <= 0x31) && screenX >= 0 && screenX < 160) {
+    // line 51-54 (0x33-0x36) のスプライトデバッグ
+    if ((currentLine >= 0x33 && currentLine <= 0x36) && screenX >= 0 && screenX < 160) {
       // 最初のspriteだけ、または重要な位置でのみ詳細表示
       if (s == 0 || (spriteScreenX >= spr.x && spriteScreenX < spr.x + 8)) {
         std::cout << "LINE" << std::hex << (int)currentLine << std::dec
@@ -436,14 +436,6 @@ void PPU::stepMode3(int dotCounter) {
 
   framebuffer[currentLine * 160 + screenX] = pixel;
 
-  // LINE 0x58と0x59で実際に描画された色を比較
-  if ((currentLine == 0x58 || currentLine == 0x59) && screenX < 160) {
-    if (finalColor != 0) {  // 背景色以外が描画された時
-      std::cout << "DRAW LINE" << std::hex << (int)currentLine << std::dec
-                << "[" << std::setw(3) << screenX << "] color=" << (int)finalColor
-                << " pixel=" << std::hex << pixel << std::dec << std::endl;
-    }
-  }
 
 
 }
@@ -575,8 +567,8 @@ void PPU::gatherSprites() {
                   return false;  // 安定ソートで元の順序を保持
               });
 
-    // LINE 42-49 (0x2A-0x31) でのsprite収集結果を確認
-    if (currentLine >= 0x2A && currentLine <= 0x31) {
+    // LINE 51-54 (0x33-0x36) でのsprite収集結果を確認
+    if (currentLine >= 0x33 && currentLine <= 0x36) {
         std::cout << "[GATHER] LINE " << std::hex << (int)currentLine << std::dec
                   << " found " << spriteCount << " sprites (sorted by X):";
         for (int i = 0; i < spriteCount; ++i) {

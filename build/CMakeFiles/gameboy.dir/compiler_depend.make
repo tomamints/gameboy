@@ -2028,6 +2028,7 @@ CMakeFiles/gameboy.dir/src/display.cpp.o: /Users/shiraitouma/mintsPg/gameboy/src
   /Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/lib/clang/16/include/xsavesintrin.h \
   /Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/lib/clang/16/include/xtestintrin.h \
   /Users/shiraitouma/mintsPg/gameboy/include/display.hpp \
+  /Users/shiraitouma/mintsPg/gameboy/include/input.hpp \
   /usr/local/Cellar/sdl2/2.30.5/include/SDL2/SDL.h \
   /usr/local/Cellar/sdl2/2.30.5/include/SDL2/SDL_assert.h \
   /usr/local/Cellar/sdl2/2.30.5/include/SDL2/SDL_atomic.h \
@@ -6256,6 +6257,7 @@ CMakeFiles/gameboy.dir/src/memory.cpp.o: /Users/shiraitouma/mintsPg/gameboy/src/
   /Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/lib/clang/16/include/stdarg.h \
   /Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/lib/clang/16/include/stddef.h \
   /Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/lib/clang/16/include/stdint.h \
+  /Users/shiraitouma/mintsPg/gameboy/include/input.hpp \
   /Users/shiraitouma/mintsPg/gameboy/include/memory.hpp
 
 CMakeFiles/gameboy.dir/src/ppu.cpp.o: /Users/shiraitouma/mintsPg/gameboy/src/ppu.cpp \

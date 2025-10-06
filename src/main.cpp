@@ -5,7 +5,7 @@
 int main(int argc, char* argv[]) {
     Emulator emu;                            // エミュレータ本体を作成
 
-    std::string romPath = "../roms/dmg-acid2.gb";
+    std::string romPath = "../roms/bgbtest.gb";
     if (argc > 1) {
         romPath = argv[1];
     }

@@ -2,6 +2,8 @@
 #include <SDL2/SDL.h>
 #include <cstdint>
 
+class Input;  // 前方宣言
+
 class Display {
 public:
     Display();
@@ -9,7 +11,7 @@ public:
 
     bool init();
     void updateFrame(const uint32_t* framebuffer);
-    bool handleEvents(); // false if quit requested
+    bool handleEvents(Input* input = nullptr); // false if quit requested
     void close();
 
 private:
