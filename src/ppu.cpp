@@ -3,6 +3,7 @@
 #include <algorithm>
 #include <fstream>
 #include <iostream>
+#include <iomanip>
 
 // Game Boy仕様
 // CPU::step()は1dot（Tサイクル）単位。1ライン=456dot
@@ -170,6 +171,7 @@ void PPU::enterMode2() { //OAM find
     fetcherState = 0;
     fetcherX = 0;
     fetcherDotCounter = 0;
+    fetchUsingWindow = false;  // 各ライン開始時にリセット
 
     scxDiscard = memory.SCX & 0x07;
 
@@ -178,16 +180,27 @@ void PPU::enterMode2() { //OAM find
     //windorwの行頭判定
     windowActive = false;
     windowLineStarted = false;
+
+
     windowEnabledThisLine =
         ((memory.LCDC & 0x20) != 0) && ((memory.LCDC & 0x01) != 0) && currentLine >= memory.WY && memory.WX <= 166;
-    // WX=0の特殊処理: WX=0のときはウィンドウが画面外で1ドット分ずれる
-    if (memory.WX == 0) {
-        windowTriggerX = -1;  // 画面外なので実質的に発火しない
-        windowEnabledThisLine = false;  // WX=0は事実上無効扱い
-    } else if (memory.WX < 7) {
-        windowTriggerX = 0;  // WX=1-6は左端から
+
+
+    // windowTriggerXの計算
+    if (!windowEnabledThisLine) {
+        windowTriggerX = -1;  // Window無効時は-1
     } else {
-        windowTriggerX = static_cast<int>(memory.WX) - 7;
+        // WX→画面Xの変換
+        int trig = static_cast<int>(memory.WX) - 7;
+        if (trig < 0) trig = 0;
+        if (trig > 159) trig = 159;
+        windowTriggerX = trig;
+
+        // WX=0の特殊処理
+        if (memory.WX == 0) {
+            windowTriggerX = -1;  // 画面外なので実質的に発火しない
+            windowEnabledThisLine = false;  // WX=0は事実上無効扱い
+        }
     }
 
     spriteCount = 0;
@@ -198,6 +211,7 @@ void PPU::enterMode2() { //OAM find
 void PPU::enterMode3() {
     setMode(3);  // setMode()を使ってSTAT割り込み処理
     // VRAMもロックして描画開始
+    gatherSprites(); //Mode3の直前にも飛ぶ＝タイミング補正
     memory.oamLocked = true;
     memory.vramLocked = true;
     fetcherDotCounter = 0;  // Mode3開始時にフェッチャーカウンタリセット
@@ -226,22 +240,38 @@ void PPU::stepMode3(int dotCounter) {
   // 画面上のX座標計算（ウィンドウ切り替え判定用）
   int screenX = dotCounter - MODE3_START -8 ;
 
+  // リアルタイムWXチェック: WXが変更されたらwindowEnabledThisLineを再計算
+  static uint8_t cachedWX = memory.WX;
+  if (memory.WX != cachedWX) {
+    cachedWX = memory.WX;
+
+    // windowEnabledThisLineを再計算
+    windowEnabledThisLine = ((memory.LCDC & 0x20) != 0) && ((memory.LCDC & 0x01) != 0)
+                            && currentLine >= memory.WY && memory.WX <= 166;
+
+    if (memory.WX == 0) {
+      windowEnabledThisLine = false;  // WX=0は事実上無効扱い
+    }
+
+    windowTriggerX = std::min(159, std::max(0, static_cast<int>(memory.WX) - 7));
+  }
+
+
   // ウィンドウ切り替え処理
   // Window判定は描画位置より早めに行う（フェッチャー遅延を考慮）
   int windowCheckX = dotCounter - MODE3_START;
+
   if (!windowActive && windowEnabledThisLine && windowCheckX >= windowTriggerX) {
     windowActive = true;
     windowLineStarted = true;
     fetcherX = 0;
     fetcherState = 0;
     scxDiscard = 0;
-    // Window切り替え時もフェッチャー遅延をリセット
     fetcherDotCounter = 0;
   }
 
   const bool bgEnabled = (memory.LCDC & 0x01) != 0;
 
-  // ---- BG FIFO が細りすぎたら補充（<=8くらいを目安）----
   if (bgFifo.size() < 8) {
     switch (fetcherState) {
       case 0: { // タイル番号取得
@@ -343,11 +373,55 @@ void PPU::stepMode3(int dotCounter) {
   uint8_t finalColor = bgColorId;
   bool bgOpaque = (bgColorId != 0);
 
-  // スプライト処理
-  int spriteScreenX = dotCounter - MODE3_START - 6;  // スプライト用座標
+  // スプライト処理 (リアルタイムパレット対応)
+  int spriteScreenX = screenX + 2;  // スプライト用座標をscreenXと同じにする
+
+  // スプライトパレット変更検出
+  static uint8_t cachedOBP0 = memory.OBP0;
+  static uint8_t cachedOBP1 = memory.OBP1;
+
+  if (memory.OBP0 != cachedOBP0 || memory.OBP1 != cachedOBP1) {
+    cachedOBP0 = memory.OBP0;
+    cachedOBP1 = memory.OBP1;
+  }
 
   for (int s = 0; s < spriteCount; ++s) {
     const SpriteLine& spr = spriteLineBuffer[s];
+
+    // line 0x58と0x59のスプライトデバッグ
+    if ((currentLine == 0x58 || currentLine == 0x59) && screenX >= 0 && screenX < 160) {
+      // 最初のspriteだけ、または重要な位置でのみ詳細表示
+      if (s == 0 || (spriteScreenX >= spr.x && spriteScreenX < spr.x + 8)) {
+        std::cout << "LINE" << std::hex << (int)currentLine << std::dec
+                  << "[" << std::setw(3) << screenX << "] "
+                  << "SPR[" << s << "] "
+                  << "sprX=" << std::setw(3) << spr.x
+                  << " scrX=" << std::setw(3) << spriteScreenX
+                  << " tile=" << std::hex << (int)spr.tile << std::dec
+                  << " attr=" << std::hex << (int)spr.attr << std::dec;
+
+        if (spriteScreenX >= spr.x && spriteScreenX < spr.x + 8) {
+          int pixelIndex = spriteScreenX - spr.x;
+          uint8_t spriteColor = spr.pixels[pixelIndex];
+
+          // 現在のVRAMの値を読んで比較
+          int lineInSprite = currentLine - (spr.x < 0 ? currentLine : currentLine - 88);
+          if (spr.attr & 0x40) {
+              lineInSprite = 7 - lineInSprite;
+          }
+          uint16_t currentAddr = 0x8000 + spr.tile * 16 + lineInSprite * 2;
+          uint8_t currentLow = readPPUByte(currentAddr);
+          uint8_t currentHigh = readPPUByte(currentAddr + 1);
+          int bit = (spr.attr & 0x20) ? pixelIndex : (7 - pixelIndex);
+          uint8_t currentColor = ((currentHigh >> bit) & 0x01) << 1 | ((currentLow >> bit) & 0x01);
+
+          std::cout << " px[" << pixelIndex << "]=" << (int)spriteColor
+                    << " (current VRAM would be " << (int)currentColor << ")"
+                    << " prio=" << spr.priority;
+        }
+        std::cout << " sprCnt=" << spriteCount << std::endl;
+      }
+    }
 
     // X座標範囲チェック
     if (spriteScreenX < spr.x || spriteScreenX >= spr.x + 8) {
@@ -365,8 +439,9 @@ void PPU::stepMode3(int dotCounter) {
       continue;
     }
 
-    // スプライト色を採用
-    pixel = decodeDMGColor(spr.palette, spriteColor);
+    // リアルタイムパレット使用 (gatherSprites時のパレットではなく現在のパレット)
+    uint8_t currentPalette = (spr.attr & 0x10) ? memory.OBP1 : memory.OBP0;
+    pixel = decodeDMGColor(currentPalette, spriteColor);
     finalColor = spriteColor;
     bgOpaque = true;
     break;  // 最初に見つかったスプライトを採用（優先度順）
@@ -374,11 +449,19 @@ void PPU::stepMode3(int dotCounter) {
 
   framebuffer[currentLine * 160 + screenX] = pixel;
 
+  // LINE 0x58と0x59で実際に描画された色を比較
+  if ((currentLine == 0x58 || currentLine == 0x59) && screenX < 160) {
+    if (finalColor != 0) {  // 背景色以外が描画された時
+      std::cout << "DRAW LINE" << std::hex << (int)currentLine << std::dec
+                << "[" << std::setw(3) << screenX << "] color=" << (int)finalColor
+                << " pixel=" << std::hex << pixel << std::dec << std::endl;
+    }
+  }
+
 
 }
 
 
-// ▼▼▼ これを ppu.cpp に追加してください（1箇所だけ） ▼▼▼
 uint8_t PPU::readPPUByte(uint16_t addr) {
     bool vramPrev = memory.vramLocked;
     bool oamPrev  = memory.oamLocked;
@@ -419,6 +502,7 @@ void PPU::saveFramePPM(const std::string& path) const {
         }
     }
 }
+
 
 void PPU::gatherSprites() {
     // スプライト無効なら何もしない
@@ -470,6 +554,21 @@ void PPU::gatherSprites() {
             uint16_t tileAddr = 0x8000 + tile * 16 + lineInSprite * 2;
             uint8_t low = readPPUByte(tileAddr);
             uint8_t high = readPPUByte(tileAddr + 1);
+
+            // LINE 0x58と0x59でタイルデータを確認
+            if (currentLine == 0x58 || currentLine == 0x59) {
+                if (tile == 0x0C || tile == 0x0D) {
+                    std::cout << "[TILE] LINE" << std::hex << (int)currentLine
+                              << " dot=" << std::dec << dotCounter
+                              << " sprY=" << spriteY
+                              << " tile=" << std::hex << (int)tile
+                              << " addr=" << tileAddr
+                              << " low=" << (int)low << " high=" << (int)high
+                              << " lineInSpr=" << std::dec << lineInSprite
+                              << " height=" << spriteHeight
+                              << " (gathered at Mode2)" << std::endl;
+                }
+            }
 
             // 8ピクセル分のデータを準備
             for (int px = 0; px < 8; ++px) {

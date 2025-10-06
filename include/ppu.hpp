@@ -30,6 +30,7 @@ private:
     bool coincidence = false;   // LYC=LY フラグ
     uint32_t framebuffer[160*144];//出力先ピクセル
     uint8_t bgLineColor[160]{};  // 背景/ウィンドウの色番号（スプライト優先判定用）
+
     int dotCounter = 0;         // 現在のライン内ドット位置
 
     std::deque<uint8_t> bgFifo;

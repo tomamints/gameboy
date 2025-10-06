@@ -2835,3 +2835,4 @@ uint8_t& CPU::getRegisterRef(uint8_t code) {
         default: throw std::runtime_error("(HL)は参照不可");
     }
 }
+

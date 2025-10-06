@@ -47,9 +47,13 @@ void Emulator::run() {
     while (totalCycles < MAX_CYCLES) {
         int cycles = cpu.step();
         ++stepCount;
-        ppu.step(cycles);
-        timer.step(cycles);
-        totalCycles += cycles;
+
+        // 1Tサイクルずつ実行してレジスタ更新を即座に反映
+        for (int i = 0; i < cycles; i++) {
+            ppu.step(1);
+            timer.step(1);
+            totalCycles++;
+        }
 
         uint8_t sc = memory.readByte(0xFF02);
 
@@ -143,9 +147,13 @@ void Emulator::runWithDisplay() {
     while (totalCycles < MAX_CYCLES) {
         int cycles = cpu.step();
         ++stepCount;
-        ppu.step(cycles);
-        timer.step(cycles);
-        totalCycles += cycles;
+
+        // 1Tサイクルずつ実行してレジスタ更新を即座に反映
+        for (int i = 0; i < cycles; i++) {
+            ppu.step(1);
+            timer.step(1);
+            totalCycles++;
+        }
 
         // フレーム更新チェック
         if (totalCycles - frameCount * FRAME_INTERVAL >= FRAME_INTERVAL) {
